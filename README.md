@@ -22,13 +22,6 @@ source .venv/bin/activate
 
 ### 2) Install dependencies
 
-You can install directly with your requested command:
-
-```bash
-pip install fastapi uvicorn sqlalchemy python-multipart python-jose passlib[bcrypt] psycopg2-binary
-```
-
-Or install pinned project dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -43,6 +36,14 @@ uvicorn app.main:app --reload
 API docs are available at:
 
 - `http://127.0.0.1:8000/docs`
+
+## Testing via docs
+In FastAPI docs (/docs), for each protected endpoint:
+
+Click Try it out
+Find header param x-user-id
+Enter an integer like 1
+Then click Execute
 
 ## Configuration
 
