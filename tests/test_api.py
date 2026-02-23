@@ -124,3 +124,36 @@ def test_delete_file_owner_only(tmp_path: Path):
 
         forbidden_delete = client.delete(f"/files/{file_id}", headers={"X-User-Id": "19"})
         assert forbidden_delete.status_code == 404
+
+
+def test_list_user_link_audits(tmp_path: Path):
+    with build_client(tmp_path) as client:
+        upload_response = client.post(
+            "/files/upload",
+            headers={"X-User-Id": "25"},
+            files={"file": ("audit-me.txt", b"audit-me", "text/plain")},
+        )
+        assert upload_response.status_code == 201
+        file_id = upload_response.json()["file_id"]
+
+        sign_response = client.post(
+            f"/files/{file_id}/signed-link",
+            headers={"X-User-Id": "25"},
+            json={"ttl_seconds": 123},
+        )
+        assert sign_response.status_code == 200
+
+        audit_list_response = client.get("/files/users/25/link-audits", headers={"X-User-Id": "25"})
+        assert audit_list_response.status_code == 200
+        audits = audit_list_response.json()
+        assert len(audits) == 1
+        assert audits[0]["file_id"] == file_id
+        assert audits[0]["filename"] == "audit-me.txt"
+        assert audits[0]["requester_user_id"] == 25
+        assert audits[0]["ttl_seconds"] == 123
+
+
+def test_list_user_link_audits_forbidden_when_user_mismatch(tmp_path: Path):
+    with build_client(tmp_path) as client:
+        forbidden_response = client.get("/files/users/99/link-audits", headers={"X-User-Id": "98"})
+        assert forbidden_response.status_code == 403

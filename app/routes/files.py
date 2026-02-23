@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.models import LinkAudit, StoredFile
-from app.schemas import FileMetadataResponse, SignedLinkRequest, SignedLinkResponse, UploadResponse
+from app.schemas import FileMetadataResponse, LinkAuditResponse, SignedLinkRequest, SignedLinkResponse, UploadResponse
 from app.utils import create_download_token, require_user_id
 
 
@@ -77,6 +77,36 @@ def list_user_files(
 			uploaded_at=stored_file.created_at,
 		)
 		for stored_file in files
+	]
+
+
+@router.get("/users/{user_id}/link-audits", response_model=list[LinkAuditResponse])
+def list_user_link_audits(
+	user_id: int,
+	auth_user_id: int = Depends(require_user_id),
+	db: Session = Depends(get_db),
+):
+	if user_id != auth_user_id:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this user's audits")
+
+	audits = (
+		db.query(LinkAudit, StoredFile)
+		.join(StoredFile, StoredFile.id == LinkAudit.file_id)
+		.filter(StoredFile.owner_user_id == user_id)
+		.order_by(LinkAudit.created_at.desc())
+		.all()
+	)
+
+	return [
+		LinkAuditResponse(
+			audit_id=audit.id,
+			file_id=stored_file.id,
+			filename=stored_file.original_filename,
+			requester_user_id=audit.requester_user_id,
+			ttl_seconds=audit.ttl_seconds,
+			created_at=audit.created_at,
+		)
+		for audit, stored_file in audits
 	]
 
 

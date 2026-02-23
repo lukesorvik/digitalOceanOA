@@ -27,3 +27,12 @@ class SignedLinkResponse(BaseModel):
 	ttl_seconds: int
 	download_url: str
 
+
+class LinkAuditResponse(BaseModel):
+	audit_id: int
+	file_id: int
+	filename: str
+	requester_user_id: int
+	ttl_seconds: int
+	created_at: datetime
+

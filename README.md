@@ -50,6 +50,7 @@ Upload (with owner): curl -X POST "$BASE/files/upload" -H "X-User-Id: 1" -F "fil
 List files: curl "$BASE/files" -H "X-User-Id: 1"
 Create signed link: curl -X POST "$BASE/files/<file_id>/signed-link" -H "X-User-Id: 1" -H "Content-Type: application/json" -d '{"ttl_seconds":600}'
 Download via returned URL: curl -L "<download_url>" -o downloaded.txt
+List link audits by user: curl "$BASE/files/users/1/link-audits" -H "X-User-Id: 1"
 Delete file by id: curl -X DELETE "$BASE/files/<file_id>" -H "X-User-Id: 1"
 
 ## Configuration
@@ -103,6 +104,12 @@ export DATABASE_URL="sqlite:///./data/app.db"
 
 - `DELETE /files/{file_id}`
 - Header: `X-User-Id: <integer>`
+
+### List link audits (owner only)
+
+- `GET /files/users/{user_id}/link-audits`
+- Header: `X-User-Id: <integer>`
+- Security: `user_id` must match `X-User-Id`
 
 ### Download file by signed URL (public)
 
