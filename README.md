@@ -172,3 +172,27 @@ GitHub Actions workflow is included at `.github/workflows/ci.yml` and runs tests
 6. Deploy and validate `GET /health` and signed-link flow.
 
 Production note: local filesystem upload storage works for single-instance setups. For horizontal scaling, use object storage (for example DigitalOcean Spaces) and keep signing keys in a secret manager.
+
+
+# Design choices and security risks currently
+
+I built a FastAPI service for private file sharing with expiring signed download links.
+The flow is: a user uploads a file, we store file metadata in Postgres and the file itself in a non-public server directory, then the owner can request a signed link with a TTL.
+That link is a JWT containing file ID, owner ID, and expiration, signed with a server secret, so download validation is stateless and still works after service restarts.
+
+For design choices, I separated concerns into routes, schemas, models, config, and utilities, used SQLAlchemy for persistence, and added audit logging each time a signed link is generated (who requested it, which file, and for how long).
+I also added tests for upload, listing, signed link generation, download validation, audit retrieval, and delete behavior, plus CI to run tests on push/PR.
+
+Security-wise, this MVP currently uses X-User-Id for identity simulation, which is fine for demo/testing but not production-safe because headers can be spoofed.
+In production, I’d replace that with real authentication (JWT/session), derive identity server-side, keep secrets in environment/secret manager, and move file storage to object storage for multi-instance deployments.
+
+How link survives restart:
+
+No in-memory session/state is required for validation.
+Everything needed is:
+token itself (already in URL),
+persistent DB record (file metadata in Postgres),
+stable env secret (SIGNING_SECRET).
+After restart, app loads same env + DB, so it can still verify old valid tokens until exp is reached.
+
+signing happens with python-jose using HMAC-SHA256 (HS256) and your SIGNING_SECRET.
