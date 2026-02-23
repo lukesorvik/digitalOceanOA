@@ -81,3 +81,46 @@ def test_signed_link_owner_only(tmp_path: Path):
             json={"ttl_seconds": 600},
         )
         assert forbidden_sign_response.status_code == 404
+
+
+def test_delete_file_removes_metadata_and_disk_file(tmp_path: Path):
+    with build_client(tmp_path) as client:
+        upload_response = client.post(
+            "/files/upload",
+            headers={"X-User-Id": "12"},
+            files={"file": ("delete-me.txt", b"delete-me-content", "text/plain")},
+        )
+        assert upload_response.status_code == 201
+        file_id = upload_response.json()["file_id"]
+
+        from app.database import SessionLocal
+        from app.models import StoredFile
+
+        with SessionLocal() as session:
+            stored_file = session.query(StoredFile).filter(StoredFile.id == file_id).first()
+            assert stored_file is not None
+            disk_path = Path(stored_file.upload_path)
+            assert disk_path.exists()
+
+        delete_response = client.delete(f"/files/{file_id}", headers={"X-User-Id": "12"})
+        assert delete_response.status_code == 204
+
+        with SessionLocal() as session:
+            stored_file_after_delete = session.query(StoredFile).filter(StoredFile.id == file_id).first()
+            assert stored_file_after_delete is None
+
+        assert not disk_path.exists()
+
+
+def test_delete_file_owner_only(tmp_path: Path):
+    with build_client(tmp_path) as client:
+        upload_response = client.post(
+            "/files/upload",
+            headers={"X-User-Id": "18"},
+            files={"file": ("owner-delete.txt", b"owner-delete", "text/plain")},
+        )
+        assert upload_response.status_code == 201
+        file_id = upload_response.json()["file_id"]
+
+        forbidden_delete = client.delete(f"/files/{file_id}", headers={"X-User-Id": "19"})
+        assert forbidden_delete.status_code == 404

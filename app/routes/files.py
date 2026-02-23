@@ -127,3 +127,26 @@ def create_signed_link(
 		download_url = f"{str(request.base_url).rstrip('/')}/download/{token}"
 
 	return SignedLinkResponse(file_id=stored_file.id, ttl_seconds=payload.ttl_seconds, download_url=download_url)
+
+
+@router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_file(
+	file_id: int,
+	user_id: int = Depends(require_user_id),
+	db: Session = Depends(get_db),
+):
+	stored_file = (
+		db.query(StoredFile)
+		.filter(StoredFile.id == file_id, StoredFile.owner_user_id == user_id)
+		.first()
+	)
+	if stored_file is None:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+	file_path = Path(stored_file.upload_path)
+	if file_path.exists() and file_path.is_file():
+		file_path.unlink()
+
+	db.query(LinkAudit).filter(LinkAudit.file_id == stored_file.id).delete(synchronize_session=False)
+	db.delete(stored_file)
+	db.commit()
