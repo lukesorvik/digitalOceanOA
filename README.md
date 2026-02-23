@@ -196,3 +196,6 @@ stable env secret (SIGNING_SECRET).
 After restart, app loads same env + DB, so it can still verify old valid tokens until exp is reached.
 
 signing happens with python-jose using HMAC-SHA256 (HS256) and your SIGNING_SECRET.
+
+“Link remains valid after restart” is true for token cryptographic validity (same secret + DB), but download can still fail if file bytes were on ephemeral container disk.
+So the exact production caveat is: token survives restart; file durability requires persistent/shared storage (e.g., Spaces/S3).
