@@ -45,6 +45,12 @@ Find header param x-user-id
 Enter an integer like 1
 Then click Execute
 
+### or via terminal 
+Upload (with owner): curl -X POST "$BASE/files/upload" -H "X-User-Id: 1" -F "file=@./sample.txt"
+List files: curl "$BASE/files" -H "X-User-Id: 1"
+Create signed link: curl -X POST "$BASE/files/<file_id>/signed-link" -H "X-User-Id: 1" -H "Content-Type: application/json" -d '{"ttl_seconds":600}'
+Download via returned URL: curl -L "<download_url>" -o downloaded.txt
+
 ## Configuration
 
 Environment variables:

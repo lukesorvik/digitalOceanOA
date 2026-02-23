@@ -116,5 +116,14 @@ def create_signed_link(
 	db.add(audit)
 	db.commit()
 
-	download_url = f"{str(request.base_url).rstrip('/')}/download/{token}"
+	forwarded_proto = request.headers.get("x-forwarded-proto")
+	forwarded_host = request.headers.get("x-forwarded-host")
+	host = forwarded_host or request.headers.get("host")
+	scheme = forwarded_proto or request.url.scheme
+
+	if host:
+		download_url = f"{scheme}://{host}/download/{token}"
+	else:
+		download_url = f"{str(request.base_url).rstrip('/')}/download/{token}"
+
 	return SignedLinkResponse(file_id=stored_file.id, ttl_seconds=payload.ttl_seconds, download_url=download_url)
