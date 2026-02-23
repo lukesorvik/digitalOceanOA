@@ -1,0 +1,16 @@
+services:
+  api:
+    build: .
+    container_name: private-file-api
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: "Private File Service"
+      DATABASE_URL: "sqlite:////app/data/app.db"
+      UPLOAD_DIR: "/app/data/uploads"
+      SIGNING_SECRET: "change-this-in-production"
+      SIGNING_ALGORITHM: "HS256"
+      MAX_TTL_SECONDS: "86400"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
